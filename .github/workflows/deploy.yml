@@ -15,11 +15,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Optional: หากต้องการ build และทดสอบ image ใน CI ก่อน deploy
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
       - name: Build Docker images
         run: docker-compose build
 
-      # Deploy to AWS EC2 via SSH
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -28,11 +31,8 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             cd $EC2_PROJECT_PATH
-            # ดึง code ล่าสุด (ในกรณีที่ใช้ git pull บน EC2)
             git pull origin main
-            # ปิด container เก่า
             docker-compose down
-            # Build/Run container ใหม่ (หรือใช้ docker-compose pull หาก images อยู่ใน registry)
             docker-compose up -d
         env:
           EC2_PROJECT_PATH: ${{ secrets.EC2_PROJECT_PATH }}
